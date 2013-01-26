@@ -199,63 +199,73 @@ class MyPlayerBrain(object):
         # respond to multiple status messages simultaneously then you need to
         # split these out and synchronize access to the saved list objects.
 
-        try:
-            # bugbug - we return if not us because the below code is only for
-            # when we need a new path or our limo hits a bus stop. If you want
-            # to act on other players arriving at bus stops, you need to
-            # remove this. But make sure you use self.me, not playerStatus for
-            # the Player you are updating (particularly to determine what tile
-            # to start your path from).
-            print("hello")
-            self.status = status
-            self.playerStatus = playerStatus
-            self.players = players
-            self.passenger = passengers
-            if playerStatus != self.me:
-                return
+          # bugbug - we return if not us because the below code is only for
+          # when we need a new path or our limo hits a bus stop. If you want
+          # to act on other players arriving at bus stops, you need to
+          # remove this. But make sure you use self.me, not playerStatus for
+          # the Player you are updating (particularly to determine what tile
+          # to start your path from).
+        print("hello")
+        self.status = status
+        self.playerStatus = playerStatus
+        self.players = players
+        self.passenger = passengers
+        if playerStatus != self.me:
+            return
 
-            print("Now i'm me")
+        print("Now i'm me")
 
-            ptDest = None
-            pickup = []
-            if    status == "UPDATE":
-                return
-            elif (status == "PASSENGER_NO_ACTION" or
-                  status == "NO_PATH"):
-                if playerStatus.limo.passenger is None:
-                    pickup = self.allPickups(playerStatus, passengers)
-                    ptDest = pickup[0].lobby.busStop
-                else:
-                    ptDest = playerStatus.limo.passenger.destination.busStop
-            elif (status == "PASSENGER_DELIVERED" or
-                  status == "PASSENGER_ABANDONED"):
+        ptDest = None
+        pickup = []
+        if    status == "UPDATE":
+            return
+        elif (status == "PASSENGER_NO_ACTION" or
+              status == "NO_PATH"):
+            if playerStatus.limo.passenger is None:
                 pickup = self.allPickups(playerStatus, passengers)
                 ptDest = pickup[0].lobby.busStop
-            elif  status == "PASSENGER_REFUSED":
-                ptDest = random.choice(filter(lambda c: c != playerStatus.limo.passenger.destination,
-                    self.companies)).busStop
-            elif (status == "PASSENGER_DELIVERED_AND_PICKED_UP" or
-                  status == "PASSENGER_PICKED_UP"):
-                pickup = self.allPickups(playerStatus, passengers)
-                ptDest = playerStatus.limo.passenger.destination.busStop
             else:
-                raise TypeError("unknown status %r", status)
+                ptDest = playerStatus.limo.passenger.destination.busStop
+        elif (status == "PASSENGER_DELIVERED" or
+              status == "PASSENGER_ABANDONED"):
+            pickup = self.allPickups(playerStatus, passengers)
+            ptDest = pickup[0].lobby.busStop
+        elif  status == "PASSENGER_REFUSED":
+            ptDest = random.choice(filter(lambda c: c != playerStatus.limo.passenger.destination,
+                self.companies)).busStop
+        elif (status == "PASSENGER_DELIVERED_AND_PICKED_UP" or
+              status == "PASSENGER_PICKED_UP"):
+            pickup = self.allPickups(playerStatus, passengers)
+            ptDest = playerStatus.limo.passenger.destination.busStop
+        else:
+            raise TypeError("unknown status %r", status)
 
-            self.getCost(passengers[0], passengers[0].destination)
+        print("1")
+        pprint(self.companies)
+        pprint(passengers)
+        combs = []
+        for ceo in passengers:
+          for end in self.companies:
+            print( "hi")
+            combs += [(self.getCost(ceo, end), ceo, end)]
+        print("2")
 
-            # get the path from where we are to the dest.
-            path = self.calculatePathPlus1(playerStatus, ptDest)
+        pprint(combs)
 
-            sendOrders(self, "move", path, pickup)
-        except Exception as e:
-            printrap ("somefin' bad, foo'!")
-            raise e
+        self.getCost(passengers[0], passengers[0].destination)
+
+        # get the path from where we are to the dest.
+        path = self.calculatePathPlus1(playerStatus, ptDest)
+
+        sendOrders(self, "move", path, pickup)
 
     def getCost(self, ceo, end):
       """
       ceo - ceo aka passenger
       end - company
       """
+      pprint(ceo)
+      pprint(end)
 
       isRelevant = self.ceoRelevant(ceo)
 
