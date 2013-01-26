@@ -100,6 +100,7 @@ class MapSquare(object):
         assert self.type in TYPE
         if self.isDriveable():
             self.direction = element.get('direction')
+            self.dir = DIRECTION[self.direction]
             assert self.direction in DIRECTION
             stops = element.get('stop-sign')
             if stops is None:

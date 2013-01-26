@@ -11,6 +11,7 @@ No copyright claimed - do anything you want with this code.
 
 import random
 import simpleAStar
+import numpypy
 import numpy
 from framework import sendOrders
 from api import units, map
@@ -38,33 +39,99 @@ class MyPlayerBrain(object):
             avatar = None # avatar is optional
         self.avatar = avatar
 
-    def calcDists():
+
+    def makeId(self,x,y,d):
+        return self.ids[x][y] + d
+
+    def calcDists(self):
+        print "start"
         dirs = 4
-        self.dists = numpy.zeros( (width,height,dirs,width,height,dirs) )
+        width = self.gameMap.width
+        height = self.gameMap.height
+        self.ids = numpy.zeros( (width,height), int)
+        print "start"
+
+        nids = 0
         for xi in xrange(width):
             for yi in xrange(height):
-                d = self.map.squareOrDefault( (xi,yi) )
-                if d.drivable():
-                    dir = d.direction 
-                    if dir==0: #"NORTH_SOUTH":0,
-                        dists[xi][yi][UP
-                        "NORTH_SOUTH":0,
-                        "EAST_WEST":1,
-                        "INTERSECTION":2,
-                        "NORTH_UTURN":3,
-                        'EAST_UTURN':4,
-                        'SOUTH_UTURN':5,
-                        'WEST_UTURN':6,
-                        'T_NORTH':7,
-                        'T_EAST':8,
-                        'T_SOUTH':9,
-                        'T_WEST':10,
-                        'CURVE_NE':11,
-                        'CURVE_NW':12,
-                        'CURVE_SE':13,
-                        'CURVE_SW':14}
+                d = self.gameMap.squareOrDefault( (xi,yi) )
+                if d.isDriveable():
+                    self.ids[xi][yi] = nids
+                    nids += dirs
 
-                for di in xrange(dirs):
+
+        self.dists = numpy.empty( (nids,nids), int)
+        maxval = 10000
+        self.dists.fill(maxval)
+        print nids
+
+        for xi in xrange(width):
+            for yi in xrange(height):
+                #print (xi,yi)
+                d = self.gameMap.squareOrDefault( (xi,yi) )
+                if d.isDriveable():
+                    U = 0
+                    L = 1
+                    D = 2
+                    R = 3
+                    rondell = [(U,(0,0),L,3), #"INTERSECTION":2,
+                         (L,(0,0),D,3),
+                         (D,(0,0),R,3),
+                         (R,(0,0),U,3)]
+                    funs = [
+                        [(U,(0,-1),U,1), (D,(0,1),D,1)], #"NORTH_SOUTH":0,
+                        [(L,(-1,0),L,1), (R,(1,0),R,1)], #"EAST_WEST":1,
+                        rondell + #"INTERSECTION":2,
+                        [(U,(0,1),U,3),
+                         (R,(1,0),R,3),
+                         (L,(-1,0),L,3),
+                         (D,(0,-1),D,3)],
+                        [(U,(0,0),D,3), #"NORTH_UTURN":3,
+                         (D,(0,-1),D,3)],
+                        [(R,(0,0),L,3), #'EAST_UTURN':4,
+                         (L,(-1,0),L,3)],
+                        [(D,(0,0),U,3), #'SOUTH_UTURN':5,
+                         (U,(0,1),U,3)],
+                        [(L,(0,0),R,3), #'WEST_UTURN':6,
+                         (R,(-1,0),R,3)],
+                        rondell + #'T_NORTH':7,
+                        [(U,(0,1),U,3),
+                         (R,(1,0),R,3),
+                         (L,(-1,0),L,3)],
+                        rondell + #'T_EAST':8,
+                        [(U,(0,1),U,3),
+                         (R,(1,0),R,3),
+                         (D,(0,-1),D,3)],
+                        rondell + #'T_SOUTH':9,
+                        [(R,(1,0),R,3),
+                         (L,(-1,0),L,3),
+                         (D,(0,-1),D,3)],
+                        rondell + #'T_WEST':10,
+                        [(U,(0,1),U,3),
+                         (L,(-1,0),L,3),
+                         (D,(0,-1),D,3)],
+                        [(U,(1,0),R,3), #'CURVE_NE':11,
+                         (L,(0,-1),D,3)],
+                        [(U,(-1,0),L,3), #'CURVE_NW':12,
+                         (R,(0,-1),D,3)],
+                        [(D,(1,0),R,3), #'CURVE_SE':13,
+                         (L,(0,1),U,3)],
+                        [(D,(-1,0),L,3), #'CURVE_SW':14}
+                         (R,(0,1),U,3)]
+                        ]
+                    #stopsign
+                    for (d1,(xd,yd),d2,c) in funs[d.dir]:
+                        self.dists[self.makeId(xi,yi,d1)][self.makeId(xi+xd,yi+yd,d2)] = c
+
+        for k in xrange(nids):
+            print (k)
+            for i in xrange(nids):
+                for j in xrange(nids):
+                    self.dists[i][j] = max(
+                    self.dists[i][j],
+                    self.dists[i][k] +
+                    self.dists[k][j])
+
 
         
     
@@ -88,6 +155,8 @@ class MyPlayerBrain(object):
         self.client = client
 
         self.pickup = pickup = self.allPickups(me, passengers)
+
+        self.calcDists()
 
         # get the path from where we are to the dest.
         path = self.calculatePathPlus1(me, pickup[0].lobby.busStop)
