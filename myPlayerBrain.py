@@ -12,6 +12,7 @@ No copyright claimed - do anything you want with this code.
 import random
 import simpleAStar
 import numpy
+import networkx as nx
 from framework import sendOrders
 from api import units, map
 from debug import printrap
@@ -40,7 +41,8 @@ class MyPlayerBrain(object):
 
 
     def makeId(self,x,y,d):
-        return self.ids[x][y] + d
+        (r) = self.ids[x][y] + d
+        return r
 
     def calcDists(self):
         print "start"
@@ -50,19 +52,21 @@ class MyPlayerBrain(object):
         self.ids = numpy.zeros( (width,height), int)
         print "start"
 
-        nids = 0
+        self.nids = 0
         for xi in xrange(width):
             for yi in xrange(height):
                 d = self.gameMap.squareOrDefault( (xi,yi) )
                 if d.isDriveable():
-                    self.ids[xi][yi] = nids
-                    nids += dirs
+                    self.ids[xi][yi] = self.nids
+                    self.nids += dirs
 
-
-        self.dists = numpy.empty( (nids,nids), int)
-        maxval = 10000
-        self.dists.fill(maxval)
-        print nids
+        print self.nids
+        self.G = nx.DiGraph()
+        #self.G.add_node(self.nids)
+        #self.dists = numpy.empty( (self.nids,self.nids), list)
+        for i in xrange(self.nids):
+            self.G.add_node(i)
+        #    self.dists[i] = []
 
         for xi in xrange(width):
             for yi in xrange(height):
@@ -92,7 +96,7 @@ class MyPlayerBrain(object):
                         [(D,(0,0),U,3), #'SOUTH_UTURN':5,
                          (U,(0,1),U,3)],
                         [(L,(0,0),R,3), #'WEST_UTURN':6,
-                         (R,(-1,0),R,3)],
+                         (R,(1,0),R,3)],
                         rondell + #'T_NORTH':7,
                         [(U,(0,1),U,3),
                          (R,(1,0),R,3),
@@ -120,20 +124,31 @@ class MyPlayerBrain(object):
                         ]
                     #stopsign
                     for (d1,(xd,yd),d2,c) in funs[d.dir]:
-                        self.dists[self.makeId(xi,yi,d1)][self.makeId(xi+xd,yi+yd,d2)] = c
+                        f = self.makeId(xi,yi,d1)
+                        t = self.makeId(xi+xd,yi+yd,d2)
+                        self.G.add_weighted_edges_from([(f,t,c)])
+                        #print (f,t,c+1334)
+                    #print nx.shortest_path(self.G, None, None, weight="weight")[f]
+                    #return
+        self.paths = nx.shortest_path(self.G, None, None, weight="weight")
+        self.dists = nx.shortest_path(self.G, None, None, weight="weight")
 
-        for k in xrange(nids):
-            print (k)
-            for i in xrange(nids):
-                for j in xrange(nids):
-                    self.dists[i][j] = max(
-                    self.dists[i][j],
-                    self.dists[i][k] +
-                    self.dists[k][j])
+        #for k in xrange(self.nids):
+        #    print (k)
+        #    for i in xrange(self.nids):
+        #        for j in xrange(self.nids):
+        #            self.dists[i][j] = max(
+        #            self.dists[i][j],
+        #            self.dists[i][k] +
+        #            self.dists[k][j])
 
+    def distance( (x1,y1,d1), (x2,y2,d2) ):
+        i = self.makeId(x1,y1,d1)
+        j = self.makeId(x2,y2,d2)
+        d = self.dists[i][j]
+        p = self.paths[i][j]
+        return (d,p)
 
-        
-    
     def setup(self, gMap, me, allPlayers, companies, passengers, client):
         """
         Called at the start of the game; initializes instance variables.
@@ -156,6 +171,11 @@ class MyPlayerBrain(object):
         self.pickup = pickup = self.allPickups(me, passengers)
 
         self.calcDists()
+
+        #i = 3 #self.makeId(x1,y1,d1)
+        #j = 8 #self.makeId(x2,y2,d2)
+        #r = nx.shortest_path(self.G, None, None, weight="weight")
+        #print r
 
         # get the path from where we are to the dest.
         path = self.calculatePathPlus1(me, pickup[0].lobby.busStop)
