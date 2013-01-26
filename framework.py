@@ -16,7 +16,7 @@ import tcpClient, myPlayerBrain, api
 from debug import trap, printrap, bugprint
 
 #DEFAULT_ADDRESS = "169.254.12.246" #local machine
-DEFAULT_ADDRESS = "128.61.22.195" #local machine
+DEFAULT_ADDRESS = "143.215.54.217" #local machine
 
 
 class Framework(object):

@@ -11,7 +11,6 @@ No copyright claimed - do anything you want with this code.
 
 import random
 import simpleAStar
-import numpypy
 import numpy
 from framework import sendOrders
 from api import units, map
@@ -145,7 +144,7 @@ class MyPlayerBrain(object):
         companies -- The companies on the map.
         passengers -- The passengers that need a lift.
         client -- TcpClient to use to send orders to the server.
-        
+
         """
         self.gameMap = gMap
         self.players = allPlayers
@@ -186,6 +185,11 @@ class MyPlayerBrain(object):
             # remove this. But make sure you use self.me, not playerStatus for
             # the Player you are updating (particularly to determine what tile
             # to start your path from).
+            print("hello")
+            self.status = status
+            self.playerStatus = playerStatus
+            self.players = players
+            self.passenger = passengers
             if playerStatus != self.me:
                 return
 
@@ -214,6 +218,8 @@ class MyPlayerBrain(object):
             else:
                 raise TypeError("unknown status %r", status)
 
+            getCost(passengers[0], passengers[0].busStop)
+
             # get the path from where we are to the dest.
             path = self.calculatePathPlus1(playerStatus, ptDest)
 
@@ -221,6 +227,32 @@ class MyPlayerBrain(object):
         except Exception as e:
             printrap ("somefin' bad, foo'!")
             raise e
+
+    def getCost(ceo, end):
+      """
+      ceo - ceo aka passenger
+      end - company
+      """
+
+      isRelevant = ceoRelevant(ceo)
+
+      if(not isRelevant): return 99999999999999999
+      points = ceo.pointsDelivered
+      endPeople = ceo.destination.passengers # People standing there
+      relevantEndPeople = select(self.ceoRelevant, endPeople)
+      enemiesAtEnd = set(endPeople).intersection( set(ceo.enemies) )
+
+      values = [
+          distcost * 1.0,
+          points * 1.0,
+          len(relevantEndPeople) * -1.0,
+          len(enemiesAtEnd) * 1.0
+          ]
+      pprint(values)
+      return sum(values)
+
+    def ceoRelevant(ceo):
+      return (not ceo in self.me.passengersDelivered) and              (ceo.car == None or ceo == self.me.limo.passenger) and              (ceo.destination != None)
 
     def calculatePathPlus1 (self, me, ptDest):
         path = simpleAStar.calculatePath(self.gameMap, me.limo.tilePosition, ptDest)
