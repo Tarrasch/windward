@@ -16,6 +16,7 @@ import networkx as nx
 from framework import sendOrders
 from api import units, map
 from debug import printrap
+from pprint import pprint
 
 from xml.etree import ElementTree as ET
 
@@ -213,6 +214,8 @@ class MyPlayerBrain(object):
             if playerStatus != self.me:
                 return
 
+            print("Now i'm me")
+
             ptDest = None
             pickup = []
             if    status == "UPDATE":
@@ -238,7 +241,7 @@ class MyPlayerBrain(object):
             else:
                 raise TypeError("unknown status %r", status)
 
-            getCost(passengers[0], passengers[0].busStop)
+            self.getCost(passengers[0], passengers[0].destination)
 
             # get the path from where we are to the dest.
             path = self.calculatePathPlus1(playerStatus, ptDest)
@@ -248,19 +251,20 @@ class MyPlayerBrain(object):
             printrap ("somefin' bad, foo'!")
             raise e
 
-    def getCost(ceo, end):
+    def getCost(self, ceo, end):
       """
       ceo - ceo aka passenger
       end - company
       """
 
-      isRelevant = ceoRelevant(ceo)
+      isRelevant = self.ceoRelevant(ceo)
 
       if(not isRelevant): return 99999999999999999
       points = ceo.pointsDelivered
       endPeople = ceo.destination.passengers # People standing there
-      relevantEndPeople = select(self.ceoRelevant, endPeople)
+      relevantEndPeople = filter(self.ceoRelevant, endPeople)
       enemiesAtEnd = set(endPeople).intersection( set(ceo.enemies) )
+      distcost = 0
 
       values = [
           distcost * 1.0,
@@ -271,7 +275,7 @@ class MyPlayerBrain(object):
       pprint(values)
       return sum(values)
 
-    def ceoRelevant(ceo):
+    def ceoRelevant(self, ceo):
       return (not ceo in self.me.passengersDelivered) and              (ceo.car == None or ceo == self.me.limo.passenger) and              (ceo.destination != None)
 
     def calculatePathPlus1 (self, me, ptDest):
